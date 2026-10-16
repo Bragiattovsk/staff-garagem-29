@@ -371,22 +371,6 @@ export const FichaDetailModal: React.FC<FichaDetailModalProps> = ({
               </div>
             </div>
           )}
-
-          {ficha.alergicos && ficha.alergicos.length > 0 && (
-            <div className="flex items-center gap-2 flex-wrap text-xs bg-red-950/30 border border-red-900/40 p-2.5 rounded-xl">
-              <span className="font-oswald font-bold text-red-400 uppercase text-[11px] tracking-wider">
-                Alérgicos / Contém:
-              </span>
-              {ficha.alergicos.map((al, idx) => (
-                <span
-                  key={idx}
-                  className="bg-red-900/30 text-red-300 border border-red-700/40 px-2 py-0.5 rounded text-[11px] font-mono"
-                >
-                  {al}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Big Bottom Action Buttons for One-Hand Mobile Operation */}

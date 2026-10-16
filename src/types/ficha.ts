@@ -37,7 +37,6 @@ export interface FichaTecnica {
   montagem: string;
   tempoPreparoSegundos?: number;
   dicaOperacional?: string;
-  alergicos?: string[];
   criadoEm?: string;
   atualizadoEm?: string;
 }
@@ -62,7 +61,6 @@ export interface SupabaseRecipeRow {
   montagem: string;
   tempo_preparo_segundos?: number | null;
   dica_operacional?: string | null;
-  alergicos?: string[] | null;
   created_at?: string;
   updated_at?: string;
 }

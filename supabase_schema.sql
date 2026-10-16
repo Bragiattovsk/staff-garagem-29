@@ -19,7 +19,6 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   montagem TEXT NOT NULL,
   tempo_preparo_segundos INT,
   dica_operacional TEXT,
-  alergicos TEXT[] DEFAULT '{}',
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );

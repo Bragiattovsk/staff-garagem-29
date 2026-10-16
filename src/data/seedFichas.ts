@@ -45,7 +45,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'Corte um zest fino de Laranja Bahia, expresse os óleos essenciais sobre a superfície do drink e esfregue levemente na borda do copo. Insira o zest entre o gelo e a parede interna do copo.',
     tempoPreparoSegundos: 45,
     dicaOperacional: 'Não diluir em excesso. O cubo grande garante degelo lento sem aguar o drink na mesa do cliente.',
-    alergicos: [],
     criadoEm: '2026-01-10T18:00:00Z',
     atualizadoEm: '2026-01-10T18:00:00Z'
   },
@@ -99,7 +98,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'Acomode a fatia de gengibre confitado atravessada delicadamente sobre o cubo de gelo com um pincho de bambu. O cliente deve sentir o aroma defumado no primeiro gole antes de atingir a base cítrica e picante.',
     tempoPreparoSegundos: 50,
     dicaOperacional: 'O Single Malt NÃO entra na coqueteleira! Ele deve ser medido no dosador e colocado em float por último.',
-    alergicos: [],
     criadoEm: '2026-01-12T19:30:00Z',
     atualizadoEm: '2026-01-12T19:30:00Z'
   },
@@ -153,7 +151,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'Finalize espirrando os óleos de um zest de limão siciliano sobre a espuma fina da taça e descarte ou apoie na borda delicadamente.',
     tempoPreparoSegundos: 40,
     dicaOperacional: 'A intensidade da Angostura deve ser de 2 dashes padronizados. Muito bitters escurece e desequilibra a acidez limpa.',
-    alergicos: [],
     criadoEm: '2026-01-15T15:00:00Z',
     atualizadoEm: '2026-01-15T15:00:00Z'
   },
@@ -201,7 +198,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'Armazenar sempre em temperatura de 2°C a 5°C na geladeira de apoio do bar. Agitar levemente antes de abastecer o bar station.',
     tempoPreparoSegundos: 1200,
     dicaOperacional: 'Rendimento aprox: 450 ml (suficiente para ~22 coquetéis Penicillin). Se cristalizar no frio, aqueça brevemente em banho-maria morno.',
-    alergicos: [],
     criadoEm: '2026-01-08T10:00:00Z',
     atualizadoEm: '2026-01-08T10:00:00Z'
   },
@@ -283,7 +279,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'No centro do prato raso negro gelado, posicione um aro metálico de 8cm. Preencha com o tartar compactando suavemente. Faça uma pequena cavidade no topo e deposite a gema intacta. Ao lado, disponha 4 fatias de crostini de focaccia aquecidos e finalize com brotos de mostarda e fio de azeite.',
     tempoPreparoSegundos: 180,
     dicaOperacional: 'Rapidez é crucial para evitar oxidação da carne. Se o pedido for para viagem ou salão lotado, nunca deixar a gema exposta ao calor da lâmpada de passe.',
-    alergicos: ['Glúten (nos crostinis)', 'Ovo'],
     criadoEm: '2026-01-11T12:00:00Z',
     atualizadoEm: '2026-01-11T12:00:00Z'
   },
@@ -351,7 +346,6 @@ export const SEED_FICHAS: FichaTecnica[] = [
     montagem: 'No centro do prato de cerâmica aquecido, espalhe a mousseline de baroa com o dorso de uma colher de sopa quente em arco largo. Acomode o tentáculo dourado repousando diagonalmente sobre a mousseline. Distribua os tomates confitados ao redor, goteje o azeite de ervas ao redor do purê e pulverize a páprica defumada sobre as ventosas do polvo.',
     tempoPreparoSegundos: 300,
     dicaOperacional: 'Prato deve sair imediatamente para o salão enquanto o tentáculo estala de crocância externa.',
-    alergicos: ['Frutos do Mar', 'Derivados de Leite'],
     criadoEm: '2026-01-14T20:00:00Z',
     atualizadoEm: '2026-01-14T20:00:00Z'
   }

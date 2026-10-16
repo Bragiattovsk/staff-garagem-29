@@ -35,7 +35,6 @@ function mapRowToFicha(row: SupabaseRecipeRow): FichaTecnica {
     montagem: row.montagem || '',
     tempoPreparoSegundos: row.tempo_preparo_segundos || undefined,
     dicaOperacional: row.dica_operacional || undefined,
-    alergicos: row.alergicos || [],
     criadoEm: row.created_at,
     atualizadoEm: row.updated_at,
   };
@@ -60,7 +59,6 @@ function mapFichaToRow(ficha: FichaTecnica): Partial<SupabaseRecipeRow> {
     montagem: ficha.montagem,
     tempo_preparo_segundos: ficha.tempoPreparoSegundos || null,
     dica_operacional: ficha.dicaOperacional || null,
-    alergicos: ficha.alergicos || [],
   };
 }
 

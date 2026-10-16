@@ -256,7 +256,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
         tempoPreparoSegundos: Number(tempoPreparoSegundos) || undefined,
         dicaOperacional: dicaOperacional.trim() || undefined,
         montagem: montagem.trim(),
-        alergicos: fichaToEdit?.alergicos || [],
         ingredientes: validIngredients,
         preparo: validSteps,
       };
