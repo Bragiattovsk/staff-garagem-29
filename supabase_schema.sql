@@ -23,6 +23,13 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- MIGRATION PARA BANCOS JÁ CRIADOS ANTERIORMENTE:
+-- O PostgreSQL não adiciona novas colunas com 'CREATE TABLE IF NOT EXISTS' se a tabela já existir.
+-- Execute estas duas linhas no SQL Editor caso sua tabela já tenha sido criada:
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS tempo_preparo_segundos INT;
+ALTER TABLE public.recipes ADD COLUMN IF NOT EXISTS dica_operacional TEXT;
+
+
 -- Índices para buscas ultrarrápidas por nome e setor
 CREATE INDEX IF NOT EXISTS idx_recipes_nome ON public.recipes(nome);
 CREATE INDEX IF NOT EXISTS idx_recipes_setor ON public.recipes(setor);

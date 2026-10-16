@@ -62,6 +62,47 @@ function mapFichaToRow(ficha: FichaTecnica): Partial<SupabaseRecipeRow> {
   };
 }
 
+/**
+ * Salva com resiliência de schema: se uma coluna opcional não existir no Supabase,
+ * remove automaticamente a coluna do payload e reenvia sem travar a operação do usuário.
+ */
+async function saveWithSchemaFallback(
+  client: any,
+  isNew: boolean,
+  initialRowData: Record<string, any>,
+  id?: string
+): Promise<any> {
+  let rowData = { ...initialRowData };
+
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const query = isNew
+      ? client.from('recipes').insert([rowData]).select().single()
+      : client.from('recipes').update(rowData).eq('id', id).select().single();
+
+    const { data, error } = await query;
+
+    if (!error) {
+      return data;
+    }
+
+    // Detectar coluna ausente no cache de schema do PostgREST / Postgres
+    const colMatch =
+      error.message.match(/Could not find the '([^']+)' column/i) ||
+      error.message.match(/column recipes\.([^\s]+) does not exist/i);
+
+    if (colMatch && colMatch[1] && colMatch[1] in rowData) {
+      const missingCol = colMatch[1];
+      console.warn(`[FichaService] Coluna opcional '${missingCol}' ausente no Supabase. Reenviando sem esta coluna.`);
+      delete rowData[missingCol];
+      continue;
+    }
+
+    throw new Error(`Erro ao salvar no Supabase: ${error.message}`);
+  }
+
+  throw new Error('Falha ao salvar no Supabase após tentativas de adaptação de schema.');
+}
+
 class HybridFichaService implements IFichaService {
   isOffline(): boolean {
     return !isSupabaseConfigured();
@@ -167,24 +208,9 @@ class HybridFichaService implements IFichaService {
     if (!this.isOffline() && supabase) {
       try {
         const rowData = mapFichaToRow(fichaToSave);
-        if (isNew) {
-          const { data, error } = await supabase.from('recipes').insert([rowData]).select().single();
-          if (error) {
-            console.error('[Supabase Insert Error]:', error.message);
-            throw new Error(`Erro ao salvar no Supabase: ${error.message}`);
-          }
-          if (data) {
-            fichaToSave = mapRowToFicha(data);
-          }
-        } else {
-          const { data, error } = await supabase.from('recipes').update(rowData).eq('id', fichaToSave.id).select().single();
-          if (error) {
-            console.error('[Supabase Update Error]:', error.message);
-            throw new Error(`Erro ao atualizar no Supabase: ${error.message}`);
-          }
-          if (data) {
-            fichaToSave = mapRowToFicha(data);
-          }
+        const savedData = await saveWithSchemaFallback(supabase, isNew, rowData, fichaToSave.id);
+        if (savedData) {
+          fichaToSave = mapRowToFicha(savedData);
         }
       } catch (err: any) {
         console.warn('[FichaService] Erro ao sincronizar com Supabase:', err);
@@ -312,14 +338,34 @@ class HybridFichaService implements IFichaService {
       if (local.length === 0) {
         return { count: 0 };
       }
-      const rows = local.map((f) => mapFichaToRow(f));
-      const { data, error } = await supabase.from('recipes').upsert(rows, { onConflict: 'id' }).select();
+      let rows = local.map((f) => mapFichaToRow(f));
 
-      if (error) {
+      for (let attempt = 0; attempt < 4; attempt++) {
+        const { data, error } = await supabase.from('recipes').upsert(rows, { onConflict: 'id' }).select();
+
+        if (!error) {
+          return { count: data?.length || rows.length };
+        }
+
+        const colMatch =
+          error.message.match(/Could not find the '([^']+)' column/i) ||
+          error.message.match(/column recipes\.([^\s]+) does not exist/i);
+
+        if (colMatch && colMatch[1]) {
+          const missingCol = colMatch[1];
+          console.warn(`[FichaService] Sincronização: Coluna '${missingCol}' ausente no banco. Removendo do envio.`);
+          rows = rows.map((r) => {
+            const copy = { ...r };
+            delete (copy as any)[missingCol];
+            return copy;
+          });
+          continue;
+        }
+
         return { count: 0, error: error.message };
       }
 
-      return { count: data?.length || rows.length };
+      return { count: 0, error: 'Falha ao sincronizar após adaptação de schema.' };
     } catch (err: any) {
       return { count: 0, error: err.message || 'Erro ao sincronizar.' };
     }
