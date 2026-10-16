@@ -18,7 +18,7 @@ export default defineConfig({
       ],
       manifest: {
         name: 'Fichas Técnicas Operacionais | Bar & Cozinha',
-        short_name: 'Fichas Staff',
+        short_name: 'Staff 29',
         description: 'PWA Mobile-First de Fichas Técnicas Operacionais para Staff de Bar e Cozinha',
         theme_color: '#09090b',
         background_color: '#09090b',
