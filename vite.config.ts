@@ -17,7 +17,7 @@ export default defineConfig({
         'android-chrome-512x512.png',
       ],
       manifest: {
-        name: 'Fichas Técnicas Operacionais | Bar & Cozinha',
+        name: 'Staff 29',
         short_name: 'Staff 29',
         description: 'PWA Mobile-First de Fichas Técnicas Operacionais para Staff de Bar e Cozinha',
         theme_color: '#09090b',

@@ -52,7 +52,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
   const [tempoPreparoSegundos, setTempoPreparoSegundos] = useState<number | ''>(45);
   const [dicaOperacional, setDicaOperacional] = useState('');
   const [montagem, setMontagem] = useState('');
-  const [alergicosStr, setAlergicosStr] = useState('');
   const [fotoUrl, setFotoUrl] = useState<string>('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [photoInfo, setPhotoInfo] = useState<string | null>(null);
@@ -65,6 +64,7 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<'nome' | 'ingredientes' | 'preparo' | 'montagem' | null>(null);
 
   // Sync state when editing or opening
   useEffect(() => {
@@ -80,7 +80,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
       setDicaOperacional(fichaToEdit.dicaOperacional || '');
       setMontagem(fichaToEdit.montagem || '');
       setFotoUrl(fichaToEdit.foto_url || '');
-      setAlergicosStr(fichaToEdit.alergicos?.join(', ') || '');
       setIngredientes(
         fichaToEdit.ingredientes.length > 0
           ? [...fichaToEdit.ingredientes]
@@ -103,13 +102,13 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
       setMontagem('');
       setFotoUrl('');
       setPhotoInfo(null);
-      setAlergicosStr('');
       setIngredientes([
         { nome: '', quantidade: 50, unidade: 'ml', categoriaIngrediente: 'destilado' },
       ]);
       setPreparo(['']);
     }
     setFormError(null);
+    setErrorField(null);
   }, [fichaToEdit, isOpen]);
 
   if (!isOpen) return null;
@@ -192,40 +191,58 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
     setPreparo((prev) => prev.filter((_, idx) => idx !== index));
   };
 
+  const scrollToField = (id: string) => {
+    setTimeout(() => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus?.();
+      }
+    }, 60);
+  };
+
   // Submission handler
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
+    setErrorField(null);
 
     if (!nome.trim()) {
-      setFormError('O nome da ficha técnica é obrigatório.');
+      const msg = 'Informe o nome da ficha técnica (ex: Negroni Clássico).';
+      setFormError(msg);
+      setErrorField('nome');
+      scrollToField('input-ficha-nome');
       return;
     }
 
     const validIngredients = ingredientes.filter((i) => i.nome.trim() !== '');
     if (validIngredients.length === 0) {
-      setFormError('Informe pelo menos um ingrediente com nome.');
+      const msg = 'Adicione pelo menos 1 ingrediente com nome e quantidade.';
+      setFormError(msg);
+      setErrorField('ingredientes');
+      scrollToField('section-ficha-ingredientes');
       return;
     }
 
     const validSteps = preparo.filter((p) => p.trim() !== '');
     if (validSteps.length === 0) {
-      setFormError('Informe pelo menos um passo no modo de preparo.');
+      const msg = 'Adicione pelo menos 1 passo no modo de preparo.';
+      setFormError(msg);
+      setErrorField('preparo');
+      scrollToField('section-ficha-preparo');
       return;
     }
 
     if (!montagem.trim()) {
-      setFormError('A instrução de montagem/serviço é obrigatória.');
+      const msg = 'Descreva a instrução de montagem e apresentação no salão.';
+      setFormError(msg);
+      setErrorField('montagem');
+      scrollToField('textarea-ficha-montagem');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      const alergicosArray = alergicosStr
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean);
-
       const payload: FichaTecnica = {
         id: fichaToEdit?.id || '',
         nome: nome.trim(),
@@ -239,7 +256,7 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
         tempoPreparoSegundos: Number(tempoPreparoSegundos) || undefined,
         dicaOperacional: dicaOperacional.trim() || undefined,
         montagem: montagem.trim(),
-        alergicos: alergicosArray,
+        alergicos: fichaToEdit?.alergicos || [],
         ingredientes: validIngredients,
         preparo: validSteps,
       };
@@ -248,7 +265,7 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
       onClose();
     } catch (err: any) {
       console.error(err);
-      setFormError(err.message || 'Erro ao salvar ficha técnica.');
+      setFormError(err.message || 'Erro ao salvar ficha técnica no Supabase.');
     } finally {
       setIsSubmitting(false);
     }
@@ -459,13 +476,30 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
                 Nome da Ficha Técnica / Drink / Prato *
               </label>
               <input
+                id="input-ficha-nome"
                 type="text"
                 required
                 value={nome}
-                onChange={(e) => setNome(e.target.value)}
+                onChange={(e) => {
+                  setNome(e.target.value);
+                  if (errorField === 'nome') {
+                    setErrorField(null);
+                    setFormError(null);
+                  }
+                }}
                 placeholder="Ex: Negroni Rock, Tartar Garagem 29..."
-                className="w-full bg-[#09090b] border border-zinc-800 rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600"
+                className={`w-full bg-[#09090b] rounded-xl px-3.5 py-2.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none transition-all ${
+                  errorField === 'nome'
+                    ? 'border-2 border-red-500 ring-2 ring-red-500/40 bg-red-950/20'
+                    : 'border border-zinc-800 focus:ring-2 focus:ring-red-600/40 focus:border-red-600'
+                }`}
               />
+              {errorField === 'nome' && (
+                <p className="text-[11px] text-red-400 font-semibold flex items-center gap-1 mt-1 animate-in fade-in">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Nome da ficha é obrigatório
+                </p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -538,7 +572,12 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
           </div>
 
           {/* DYNAMIC INGREDIENTS SECTION */}
-          <div className="space-y-3 pt-2">
+          <div
+            id="section-ficha-ingredientes"
+            className={`space-y-3 pt-2 rounded-2xl transition-all ${
+              errorField === 'ingredientes' ? 'bg-red-950/20 border-2 border-red-500/80 ring-2 ring-red-500/20 p-2.5' : ''
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-red-500" />
@@ -548,13 +587,25 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
               </div>
               <button
                 type="button"
-                onClick={handleAddIngredient}
+                onClick={() => {
+                  handleAddIngredient();
+                  if (errorField === 'ingredientes') {
+                    setErrorField(null);
+                    setFormError(null);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-950/60 text-red-400 border border-red-600/40 text-xs font-oswald uppercase tracking-wider font-bold hover:bg-red-900/50 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Adicionar Ingrediente</span>
               </button>
             </div>
+            {errorField === 'ingredientes' && (
+              <p className="text-[11px] text-red-400 font-semibold flex items-center gap-1 animate-in fade-in">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Adicione pelo menos um ingrediente com nome e quantidade
+              </p>
+            )}
 
             <div className="space-y-2">
               {ingredientes.map((ing, idx) => (
@@ -663,7 +714,12 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
           </div>
 
           {/* DYNAMIC PREPARATION STEPS */}
-          <div className="space-y-3 pt-2">
+          <div
+            id="section-ficha-preparo"
+            className={`space-y-3 pt-2 rounded-2xl transition-all ${
+              errorField === 'preparo' ? 'bg-red-950/20 border-2 border-red-500/80 ring-2 ring-red-500/20 p-2.5' : ''
+            }`}
+          >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ChefHat className="w-4 h-4 text-red-500" />
@@ -673,13 +729,25 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
               </div>
               <button
                 type="button"
-                onClick={handleAddStep}
+                onClick={() => {
+                  handleAddStep();
+                  if (errorField === 'preparo') {
+                    setErrorField(null);
+                    setFormError(null);
+                  }
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-zinc-900 text-zinc-200 border border-zinc-700 text-xs font-oswald uppercase tracking-wider font-bold hover:bg-zinc-800 transition-colors cursor-pointer"
               >
                 <Plus className="w-3.5 h-3.5" />
                 <span>Adicionar Passo</span>
               </button>
             </div>
+            {errorField === 'preparo' && (
+              <p className="text-[11px] text-red-400 font-semibold flex items-center gap-1 animate-in fade-in">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Adicione pelo menos um passo de preparo
+              </p>
+            )}
 
             <div className="space-y-2">
               {preparo.map((passo, idx) => (
@@ -693,7 +761,7 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
                     value={passo}
                     onChange={(e) => handleUpdateStep(idx, e.target.value)}
                     placeholder={`Descreva a ação do passo ${idx + 1} com objetividade...`}
-                    className="flex-1 bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans"
+                    className="flex-1 bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans resize-none"
                   />
                   <button
                     type="button"
@@ -715,13 +783,30 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
               Montagem, Finalização e Apresentação no Salão *
             </label>
             <textarea
+              id="textarea-ficha-montagem"
               rows={2}
               required
               value={montagem}
-              onChange={(e) => setMontagem(e.target.value)}
+              onChange={(e) => {
+                setMontagem(e.target.value);
+                if (errorField === 'montagem') {
+                  setErrorField(null);
+                  setFormError(null);
+                }
+              }}
               placeholder="Ex: Expresse o óleo do zest de laranja na borda e insira delicadamente entre o gelo e o copo..."
-              className="w-full bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans"
+              className={`w-full bg-[#09090b] rounded-xl px-3 py-2 text-xs sm:text-sm text-zinc-200 focus:outline-none transition-all resize-none ${
+                errorField === 'montagem'
+                  ? 'border-2 border-red-500 ring-2 ring-red-500/40 bg-red-950/20'
+                  : 'border border-zinc-800 focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans'
+              }`}
             />
+            {errorField === 'montagem' && (
+              <p className="text-[11px] text-red-400 font-semibold flex items-center gap-1 mt-1 animate-in fade-in">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Instrução de montagem e finalização é obrigatória
+              </p>
+            )}
           </div>
 
           {/* Dica Operacional e Alérgenos */}
@@ -738,21 +823,47 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
                 className="w-full bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans"
               />
             </div>
-
-            <div className="space-y-1">
-              <label className="font-oswald text-xs font-bold uppercase tracking-wider text-zinc-300">
-                Alérgicos (separar por vírgula)
-              </label>
-              <input
-                type="text"
-                value={alergicosStr}
-                onChange={(e) => setAlergicosStr(e.target.value)}
-                placeholder="Ex: Glúten, Crustáceos, Leite..."
-                className="w-full bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans"
-              />
-            </div>
           </div>
         </form>
+
+        {/* Sticky Error Toast/Bar right above the action buttons */}
+        {formError && (
+          <div className="bg-red-950 border-t border-red-600/80 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-red-100 shadow-[0_-6px_25px_rgba(220,38,38,0.4)] animate-in slide-in-from-bottom-2 duration-200">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 animate-bounce" />
+              <div className="min-w-0">
+                <p className="font-oswald uppercase tracking-wider text-red-400 font-bold text-xs leading-none">
+                  Falta preencher informações:
+                </p>
+                <p className="text-zinc-100 text-xs font-sans mt-0.5 truncate font-medium">
+                  {formError}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  if (errorField === 'nome') scrollToField('input-ficha-nome');
+                  else if (errorField === 'ingredientes') scrollToField('section-ficha-ingredientes');
+                  else if (errorField === 'preparo') scrollToField('section-ficha-preparo');
+                  else if (errorField === 'montagem') scrollToField('textarea-ficha-montagem');
+                }}
+                className="px-2.5 py-1.5 rounded-lg bg-red-600 hover:bg-red-500 text-white font-oswald uppercase text-[11px] font-bold transition-all shadow-md active:scale-95 cursor-pointer border border-red-400"
+              >
+                Ir ao campo
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormError(null)}
+                className="p-1 rounded-lg text-zinc-400 hover:text-white hover:bg-red-900/50 transition-colors"
+                aria-label="Dispensar aviso"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Modal Footer Actions */}
         <div className="sticky bottom-0 bg-[#09090b] border-t border-red-900/40 px-4 py-3 flex items-center justify-between gap-3">
@@ -786,8 +897,17 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
               disabled={isSubmitting || isUploadingPhoto}
               className="px-5 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-oswald uppercase tracking-wider font-bold shadow-[0_0_15px_rgba(220,38,38,0.3)] active:scale-[0.98] transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 border border-red-500"
             >
-              <Save className="w-4 h-4" />
-              <span>{isSubmitting ? 'Salvando...' : 'Salvar Ficha'}</span>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-white" />
+                  <span>Salvando...</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>Salvar Ficha</span>
+                </>
+              )}
             </button>
           </div>
         </div>

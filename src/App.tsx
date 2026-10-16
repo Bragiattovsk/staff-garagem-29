@@ -236,18 +236,21 @@ export function App() {
       {/* Toast Notification */}
       {toast && (
         <div
-          className={`fixed top-16 left-1/2 -translate-x-1/2 z-50 px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 text-xs sm:text-sm font-oswald uppercase tracking-wider font-bold border transition-all animate-in fade-in slide-in-from-top-4 ${
+          role="alert"
+          className={`fixed top-4 sm:top-6 left-1/2 -translate-x-1/2 z-[100] max-w-[92vw] sm:max-w-md px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-3 text-xs sm:text-sm font-oswald uppercase tracking-wider font-bold border transition-all animate-in fade-in slide-in-from-top-4 duration-300 ${
             toast.type === 'error'
-              ? 'bg-red-950/95 text-red-200 border-red-800'
-              : 'bg-red-600 text-white border-red-500 shadow-[0_0_20px_rgba(220,38,38,0.4)]'
+              ? 'bg-red-950/95 text-red-100 border-red-600 shadow-[0_0_25px_rgba(220,38,38,0.5)]'
+              : toast.type === 'info'
+              ? 'bg-zinc-900/95 text-zinc-100 border-zinc-700 shadow-xl'
+              : 'bg-emerald-600 text-white border-emerald-400 shadow-[0_0_25px_rgba(16,185,129,0.5)]'
           }`}
         >
           {toast.type === 'error' ? (
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400 animate-pulse" />
           ) : (
-            <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 text-white" />
           )}
-          <span>{toast.message}</span>
+          <span className="leading-tight">{toast.message}</span>
         </div>
       )}
 

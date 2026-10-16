@@ -14,6 +14,10 @@
     overscroll-behavior-y: none;
   }
 
+  textarea {
+    resize: none;
+  }
+
   h1, h2, h3, .font-rock {
     font-family: 'Oswald', 'Inter', sans-serif;
   }
