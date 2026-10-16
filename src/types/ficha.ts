@@ -35,8 +35,6 @@ export interface FichaTecnica {
   ingredientes: Ingrediente[];
   preparo: string[];
   montagem: string;
-  tempoPreparoSegundos?: number;
-  dicaOperacional?: string;
   criadoEm?: string;
   atualizadoEm?: string;
 }
@@ -59,8 +57,6 @@ export interface SupabaseRecipeRow {
   ingredientes: Ingrediente[];
   preparo: string[];
   montagem: string;
-  tempo_preparo_segundos?: number | null;
-  dica_operacional?: string | null;
   created_at?: string;
   updated_at?: string;
 }

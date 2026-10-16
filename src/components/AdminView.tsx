@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Plus,
   Edit,
@@ -14,8 +14,8 @@ import {
   Camera,
   KeyRound,
   ShieldCheck,
-  Eye,
-  EyeOff,
+  Shield,
+  Users,
   AlertCircle,
 } from 'lucide-react';
 import type { FichaTecnica } from '../types/ficha';
@@ -47,26 +47,56 @@ export const AdminView: React.FC<AdminViewProps> = ({
   const [isSyncing, setIsSyncing] = useState(false);
   const [connResult, setConnResult] = useState<string | null>(null);
 
-  // Gestão de PIN administrativo no Supabase
-  const [currentPin, setCurrentPin] = useState<string>('2929');
-  const [newPinInput, setNewPinInput] = useState<string>('');
-  const [showPinValue, setShowPinValue] = useState<boolean>(false);
+  // Gestão de PINs no Supabase (Staff vs Gerência)
+  const [newStaffPinInput, setNewStaffPinInput] = useState<string>('');
+  const [newAdminPinInput, setNewAdminPinInput] = useState<string>('');
   const [isUpdatingPin, setIsUpdatingPin] = useState<boolean>(false);
   const [pinMessage, setPinMessage] = useState<{ text: string; isError?: boolean } | null>(null);
 
   const isConfigured = isSupabaseConfigured();
 
-  useEffect(() => {
-    configService.getAdminPin().then((pin) => {
-      setCurrentPin(pin);
-    });
-  }, []);
-
-  const handleUpdatePin = async (e: React.FormEvent) => {
+  const handleUpdateStaffPin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const cleanPin = newPinInput.trim();
+    const cleanPin = newStaffPinInput.trim();
     if (cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
-      setPinMessage({ text: 'O PIN deve conter exatamente 4 dígitos numéricos.', isError: true });
+      setPinMessage({ text: 'O PIN de Staff deve conter exatamente 4 dígitos numéricos.', isError: true });
+      return;
+    }
+
+    setIsUpdatingPin(true);
+    setPinMessage(null);
+    try {
+      await configService.updateStaffPin(cleanPin);
+      setNewStaffPinInput('');
+      setPinMessage({ text: 'PIN da Equipe (Staff) atualizado com sucesso no Supabase!' });
+      showToast('PIN de Staff atualizado!');
+    } catch (err: any) {
+      setPinMessage({ text: err.message || 'Erro ao atualizar PIN de Staff.', isError: true });
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
+
+  const handleResetStaffPinDefault = async () => {
+    setIsUpdatingPin(true);
+    setPinMessage(null);
+    try {
+      await configService.updateStaffPin('2929');
+      setNewStaffPinInput('');
+      setPinMessage({ text: 'PIN da Equipe (Staff) restaurado para o padrão: 2929' });
+      showToast('PIN de Staff restaurado para 2929!');
+    } catch (err: any) {
+      setPinMessage({ text: err.message || 'Erro ao restaurar PIN de Staff.', isError: true });
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
+
+  const handleUpdateAdminPin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const cleanPin = newAdminPinInput.trim();
+    if (cleanPin.length !== 4 || !/^\d{4}$/.test(cleanPin)) {
+      setPinMessage({ text: 'O PIN de Gerente deve conter exatamente 4 dígitos numéricos.', isError: true });
       return;
     }
 
@@ -74,28 +104,26 @@ export const AdminView: React.FC<AdminViewProps> = ({
     setPinMessage(null);
     try {
       await configService.updateAdminPin(cleanPin);
-      setCurrentPin(cleanPin);
-      setNewPinInput('');
-      setPinMessage({ text: `PIN atualizado com sucesso no Supabase (app_config): ${cleanPin}` });
-      showToast('PIN de acesso atualizado!');
+      setNewAdminPinInput('');
+      setPinMessage({ text: 'PIN de Gerente / Admin atualizado com sucesso no Supabase!' });
+      showToast('PIN de Gerente atualizado!');
     } catch (err: any) {
-      setPinMessage({ text: err.message || 'Erro ao atualizar PIN no Supabase.', isError: true });
+      setPinMessage({ text: err.message || 'Erro ao atualizar PIN de Gerente.', isError: true });
     } finally {
       setIsUpdatingPin(false);
     }
   };
 
-  const handleResetPinDefault = async () => {
+  const handleResetAdminPinDefault = async () => {
     setIsUpdatingPin(true);
     setPinMessage(null);
     try {
-      await configService.updateAdminPin('2929');
-      setCurrentPin('2929');
-      setNewPinInput('');
-      setPinMessage({ text: 'PIN restaurado para o padrão: 2929' });
-      showToast('PIN restaurado para 2929!');
+      await configService.updateAdminPin('2900');
+      setNewAdminPinInput('');
+      setPinMessage({ text: 'PIN de Gerente / Admin restaurado para o padrão: 2900' });
+      showToast('PIN de Gerente restaurado para 2900!');
     } catch (err: any) {
-      setPinMessage({ text: err.message || 'Erro ao restaurar PIN.', isError: true });
+      setPinMessage({ text: err.message || 'Erro ao restaurar PIN de Gerente.', isError: true });
     } finally {
       setIsUpdatingPin(false);
     }
@@ -237,22 +265,45 @@ CREATE TABLE IF NOT EXISTS public.recipes (
   ingredientes JSONB NOT NULL DEFAULT '[]'::jsonb,
   preparo TEXT[] NOT NULL DEFAULT '{}',
   montagem TEXT NOT NULL,
-  tempo_preparo_segundos INT,
-  dica_operacional TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Tabela de Configurações (PIN Administrativo)
+-- 2. Tabela de Configurações e Funções RPC Seguras (Staff & Gerência)
 CREATE TABLE IF NOT EXISTS public.app_config (
   key TEXT PRIMARY KEY,
-  value TEXT NOT NULL,
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  value TEXT NOT NULL
 );
 
-INSERT INTO public.app_config (key, value)
-VALUES ('admin_pin', '2929')
-ON CONFLICT (key) DO NOTHING;
+ALTER TABLE public.app_config ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Bloquear acesso direto à app_config" ON public.app_config;
+CREATE POLICY "Bloquear acesso direto à app_config" ON public.app_config FOR ALL TO anon, authenticated USING (false);
+
+INSERT INTO public.app_config (key, value) VALUES ('staff_pin', '2929'), ('admin_pin', '2900') ON CONFLICT (key) DO NOTHING;
+
+CREATE OR REPLACE FUNCTION public.verify_staff_pin(candidate_pin TEXT)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE s_pin TEXT; a_pin TEXT;
+BEGIN
+  SELECT value INTO s_pin FROM public.app_config WHERE key = 'staff_pin' LIMIT 1;
+  SELECT value INTO a_pin FROM public.app_config WHERE key = 'admin_pin' LIMIT 1;
+  IF s_pin IS NULL THEN s_pin := '2929'; END IF;
+  IF a_pin IS NULL THEN a_pin := '2900'; END IF;
+  RETURN candidate_pin = s_pin OR candidate_pin = a_pin;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.verify_staff_pin(TEXT) TO anon, authenticated;
+
+CREATE OR REPLACE FUNCTION public.verify_admin_pin(candidate_pin TEXT)
+RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE stored_pin TEXT;
+BEGIN
+  SELECT value INTO stored_pin FROM public.app_config WHERE key = 'admin_pin' LIMIT 1;
+  IF stored_pin IS NULL THEN stored_pin := '2900'; END IF;
+  RETURN candidate_pin = stored_pin;
+END;
+$$;
+GRANT EXECUTE ON FUNCTION public.verify_admin_pin(TEXT) TO anon, authenticated;
 
 -- 3. Bucket de Storage para Fotos dos Drinks/Pratos
 -- Crie o bucket 'recipe-photos' como PUBLIC no painel do Supabase Storage`}
@@ -293,71 +344,30 @@ ON CONFLICT (key) DO NOTHING;
         </div>
       </div>
 
-      {/* PIN Security Configuration Card */}
-      <div className="bg-[#121215] border border-zinc-800/80 border-l-4 border-l-red-600 rounded-2xl p-4 space-y-3">
+      {/* PIN Security Configuration Card: Dual Access Levels */}
+      <div className="bg-[#121215] border border-zinc-800/80 border-l-4 border-l-red-600 rounded-2xl p-4 sm:p-5 space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <KeyRound className="w-4 h-4 text-red-500" />
             <h3 className="font-oswald text-sm font-bold uppercase tracking-wider text-zinc-100">
-              Segurança & PIN Administrativo (app_config)
+              Controle de Acesso & PINs Operacionais
             </h3>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
-            <span>PIN Atual:</span>
-            <span className="font-bold text-red-400 bg-black/60 px-2 py-0.5 rounded border border-zinc-800">
-              {showPinValue ? currentPin : '••••'}
+          <div className="flex items-center gap-2 text-xs font-mono">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              Protegido no Servidor (Supabase RPC)
             </span>
-            <button
-              type="button"
-              onClick={() => setShowPinValue(!showPinValue)}
-              className="text-zinc-400 hover:text-white transition-colors cursor-pointer p-0.5"
-              title={showPinValue ? 'Ocultar PIN' : 'Mostrar PIN'}
-            >
-              {showPinValue ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            </button>
           </div>
         </div>
 
         <p className="text-xs text-zinc-400 leading-relaxed">
-          O PIN de 4 dígitos protege as ações de criação, edição e exclusão de fichas técnicas. Ao salvar, a chave <code className="text-red-400 font-mono">admin_pin</code> é gravada na tabela <code className="text-red-400 font-mono">app_config</code> do Supabase.
+          O Garagem 29 possui 2 níveis de acesso independentes: o <strong className="text-zinc-200">PIN de Staff</strong> para a equipe liberar a consulta no tablet, e o <strong className="text-red-400">PIN de Gerente</strong> para criar, editar ou excluir receitas.
         </p>
-
-        <form onSubmit={handleUpdatePin} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-1">
-          <div className="relative flex-1 max-w-xs">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={4}
-              value={newPinInput}
-              onChange={(e) => setNewPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
-              placeholder="Novo PIN (ex: 2929)"
-              className="w-full bg-[#09090b] border border-zinc-800 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-white placeholder-zinc-600 outline-none transition-colors tracking-widest text-center"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={isUpdatingPin || newPinInput.length !== 4}
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-oswald text-xs font-bold uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>{isUpdatingPin ? 'Salvando...' : 'Salvar Novo PIN'}</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleResetPinDefault}
-            disabled={isUpdatingPin || currentPin === '2929'}
-            className="px-3 py-2 bg-zinc-900 hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed text-zinc-400 hover:text-white border border-zinc-800 text-xs font-oswald uppercase tracking-wider rounded-xl transition-colors cursor-pointer"
-          >
-            Restaurar 2929
-          </button>
-        </form>
 
         {pinMessage && (
           <div
-            className={`text-xs font-mono p-2.5 rounded-xl border flex items-center gap-2 ${
+            className={`text-xs font-mono p-2.5 rounded-xl border flex items-center gap-2 animate-in fade-in ${
               pinMessage.isError
                 ? 'bg-red-950/40 text-red-400 border-red-900/60'
                 : 'bg-emerald-950/40 text-emerald-400 border-emerald-900/60'
@@ -371,6 +381,92 @@ ON CONFLICT (key) DO NOTHING;
             <span>{pinMessage.text}</span>
           </div>
         )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+          {/* Card 1: PIN de Staff (Equipe / Consulta) */}
+          <div className="bg-[#09090b] border border-zinc-800/80 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2 text-zinc-200">
+              <Users className="w-4 h-4 text-amber-500" />
+              <h4 className="font-oswald text-xs font-bold uppercase tracking-wider">
+                1. PIN de Staff (Equipe / Consulta)
+              </h4>
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Compartilhado com bartenders, garçons e cozinheiros para destravar o terminal de consulta. (Padrão: <span className="font-mono text-zinc-300">2929</span>)
+            </p>
+            <form onSubmit={handleUpdateStaffPin} className="space-y-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={newStaffPinInput}
+                onChange={(e) => setNewStaffPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="Novo PIN de Staff (ex: 2929)"
+                className="w-full bg-[#121215] border border-zinc-800 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-white placeholder-zinc-600 outline-none text-center tracking-widest"
+              />
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="submit"
+                  disabled={isUpdatingPin || newStaffPinInput.length !== 4}
+                  className="flex-1 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-oswald text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-sm"
+                >
+                  Salvar PIN Staff
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetStaffPinDefault}
+                  disabled={isUpdatingPin}
+                  className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 text-[10px] font-oswald uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                >
+                  Restaurar 2929
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Card 2: PIN de Gerente / Admin (Edição & Gestão) */}
+          <div className="bg-[#09090b] border border-red-950/60 rounded-xl p-3.5 space-y-2.5">
+            <div className="flex items-center gap-2 text-zinc-200">
+              <Shield className="w-4 h-4 text-red-500" />
+              <h4 className="font-oswald text-xs font-bold uppercase tracking-wider">
+                2. PIN de Gerente / Admin (Gestão)
+              </h4>
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Exclusivo de chefs e gerentes para criar, editar ou excluir fichas técnicas. (Padrão: <span className="font-mono text-zinc-300">2900</span>)
+            </p>
+            <form onSubmit={handleUpdateAdminPin} className="space-y-2">
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={newAdminPinInput}
+                onChange={(e) => setNewAdminPinInput(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                placeholder="Novo PIN de Gerente (ex: 2900)"
+                className="w-full bg-[#121215] border border-zinc-800 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg px-3 py-1.5 text-xs font-mono font-bold text-white placeholder-zinc-600 outline-none text-center tracking-widest"
+              />
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="submit"
+                  disabled={isUpdatingPin || newAdminPinInput.length !== 4}
+                  className="flex-1 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-oswald text-[11px] font-bold uppercase tracking-wider rounded-lg transition-all cursor-pointer shadow-sm"
+                >
+                  Salvar PIN Gerente
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResetAdminPinDefault}
+                  disabled={isUpdatingPin}
+                  className="px-2.5 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-zinc-800 text-[10px] font-oswald uppercase tracking-wider rounded-lg transition-colors cursor-pointer"
+                >
+                  Restaurar 2900
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
 
       {/* List of technical sheets in Admin mode */}

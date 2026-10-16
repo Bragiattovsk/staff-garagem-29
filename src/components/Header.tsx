@@ -18,6 +18,7 @@ interface HeaderProps {
   isWakeLocked: boolean;
   onToggleWakeLock: () => void;
   isOffline: boolean;
+  onLockApp?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -28,6 +29,7 @@ export const Header: React.FC<HeaderProps> = ({
   isWakeLocked,
   onToggleWakeLock,
   isOffline,
+  onLockApp,
 }) => {
   return (
     <header className="sticky top-0 z-30 bg-[#09090b]/95 backdrop-blur-md border-b border-red-900/40 px-3.5 sm:px-4 py-2.5 shadow-lg shadow-black/60">
@@ -151,6 +153,19 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <RotateCcw className="w-4 h-4" />
           </button>
+
+          {/* Bloquear Terminal (Exigir PIN) */}
+          {onLockApp && (
+            <button
+              type="button"
+              title="Bloquear Terminal (Exigir PIN novamente)"
+              onClick={onLockApp}
+              className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-900/50 transition-colors cursor-pointer flex-shrink-0"
+              aria-label="Bloquear terminal"
+            >
+              <Lock className="w-4 h-4" />
+            </button>
+          )}
         </div>
       </div>
     </header>

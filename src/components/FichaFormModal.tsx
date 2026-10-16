@@ -49,8 +49,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
   const [recipiente, setRecipiente] = useState('');
   const [gelo, setGelo] = useState('');
   const [guarnicao, setGuarnicao] = useState('');
-  const [tempoPreparoSegundos, setTempoPreparoSegundos] = useState<number | ''>(45);
-  const [dicaOperacional, setDicaOperacional] = useState('');
   const [montagem, setMontagem] = useState('');
   const [fotoUrl, setFotoUrl] = useState<string>('');
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -76,8 +74,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
       setRecipiente(fichaToEdit.recipiente || '');
       setGelo(fichaToEdit.gelo || '');
       setGuarnicao(fichaToEdit.guarnicao || '');
-      setTempoPreparoSegundos(fichaToEdit.tempoPreparoSegundos || '');
-      setDicaOperacional(fichaToEdit.dicaOperacional || '');
       setMontagem(fichaToEdit.montagem || '');
       setFotoUrl(fichaToEdit.foto_url || '');
       setIngredientes(
@@ -97,8 +93,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
       setRecipiente('Taça Coupe');
       setGelo('Sem Gelo');
       setGuarnicao('Zest Cítrico');
-      setTempoPreparoSegundos(45);
-      setDicaOperacional('');
       setMontagem('');
       setFotoUrl('');
       setPhotoInfo(null);
@@ -253,8 +247,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
         gelo: gelo.trim() || 'N/A',
         guarnicao: guarnicao.trim() || 'N/A',
         foto_url: fotoUrl.trim() || undefined,
-        tempoPreparoSegundos: Number(tempoPreparoSegundos) || undefined,
-        dicaOperacional: dicaOperacional.trim() || undefined,
         montagem: montagem.trim(),
         ingredientes: validIngredients,
         preparo: validSteps,
@@ -808,21 +800,6 @@ export const FichaFormModal: React.FC<FichaFormModalProps> = ({
             )}
           </div>
 
-          {/* Dica Operacional e Alérgenos */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <label className="font-oswald text-xs font-bold uppercase tracking-wider text-zinc-300">
-                Dica Operacional da Bancada (Opcional)
-              </label>
-              <input
-                type="text"
-                value={dicaOperacional}
-                onChange={(e) => setDicaOperacional(e.target.value)}
-                placeholder="Ex: Não diluir em excesso, manter taça gelada..."
-                className="w-full bg-[#09090b] border border-zinc-800 rounded-xl px-3 py-2 text-xs text-zinc-200 focus:outline-none focus:ring-2 focus:ring-red-600/40 focus:border-red-600 font-sans"
-              />
-            </div>
-          </div>
         </form>
 
         {/* Sticky Error Toast/Bar right above the action buttons */}

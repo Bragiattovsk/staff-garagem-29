@@ -20,21 +20,13 @@ export const PinModal: React.FC<PinModalProps> = ({
   const [isValidating, setIsValidating] = useState<boolean>(false);
   const [isCloudChecked, setIsCloudChecked] = useState<boolean>(false);
 
-  // Busca o PIN atual na tabela app_config do Supabase assim que o modal abre
+  // Reseta o estado quando o modal abre
   useEffect(() => {
     if (isOpen) {
       setPin('');
       setError(false);
       setIsValidating(false);
-
-      // Consulta SELECT value FROM app_config WHERE key = 'admin_pin'
-      configService.getAdminPin()
-        .then(() => {
-          setIsCloudChecked(true);
-        })
-        .catch(() => {
-          setIsCloudChecked(false);
-        });
+      setIsCloudChecked(configService.isCloudConnected());
     }
   }, [isOpen]);
 
@@ -67,9 +59,10 @@ export const PinModal: React.FC<PinModalProps> = ({
   const verifyPin = async (candidatePin: string) => {
     setIsValidating(true);
     try {
-      const currentPin = await configService.getAdminPin();
-      if (candidatePin === currentPin) {
-        // Registrar sessão desbloqueada temporariamente
+      // Validação exclusiva do PIN de Gerente / Admin
+      const isValid = await configService.verifyAdminPin(candidatePin);
+      if (isValid) {
+        // Registrar sessão de admin desbloqueada temporariamente
         sessionStorage.setItem('staff_admin_unlocked', 'true');
         setPin('');
         setError(false);
@@ -81,18 +74,10 @@ export const PinModal: React.FC<PinModalProps> = ({
         }, 600);
       }
     } catch {
-      // Fallback de emergência para '2929'
-      if (candidatePin === '2929') {
-        sessionStorage.setItem('staff_admin_unlocked', 'true');
+      setError(true);
+      setTimeout(() => {
         setPin('');
-        setError(false);
-        onSuccess();
-      } else {
-        setError(true);
-        setTimeout(() => {
-          setPin('');
-        }, 600);
-      }
+      }, 600);
     } finally {
       setIsValidating(false);
     }
@@ -127,23 +112,21 @@ export const PinModal: React.FC<PinModalProps> = ({
           GARAGEM 29 ASYLUM
         </h2>
 
-        {/* Selo: ACESSO TOTAL AUTORIZADO • STAFF ONLY */}
+        {/* Selo: ACESSO DE GERÊNCIA • CHEF ONLY */}
         <div className="mt-1 mb-3 text-center">
           <span className="inline-block font-mono text-[9px] tracking-widest font-extrabold text-red-400 bg-red-950/80 px-2.5 py-1 rounded border border-red-600/50 uppercase shadow-inner">
-            ACESSO TOTAL AUTORIZADO • STAFF ONLY
+            ACESSO DE GERÊNCIA • CHEF ONLY
           </span>
         </div>
 
         {/* Instructions & Cloud Sync Indicator */}
         <p className="text-xs text-zinc-400 text-center mb-1">
-          Digite o PIN de 4 dígitos para gerenciar fichas
+          Digite o PIN de 4 dígitos de Gerente para criar, editar ou excluir receitas
         </p>
         <div className="flex items-center justify-center gap-2 mb-4 text-[10px] font-mono text-zinc-400">
-          {/*<span>Padrão: <strong className="text-red-400">2929</strong></span>*/}
-          <span>•</span>
           <span className="flex items-center gap-1 text-zinc-400">
             <Cloud className={`w-3 h-3 ${isCloudChecked ? 'text-emerald-400' : 'text-amber-400'}`} />
-            {isCloudChecked ? 'Supabase app_config' : 'Checando nuvem...'}
+            {isCloudChecked ? 'Supabase RPC Seguro' : 'Modo Operacional'}
           </span>
         </div>
 

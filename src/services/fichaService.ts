@@ -33,18 +33,18 @@ function mapRowToFicha(row: SupabaseRecipeRow): FichaTecnica {
     ingredientes: Array.isArray(row.ingredientes) ? row.ingredientes : [],
     preparo: Array.isArray(row.preparo) ? row.preparo : [],
     montagem: row.montagem || '',
-    tempoPreparoSegundos: row.tempo_preparo_segundos || undefined,
-    dicaOperacional: row.dica_operacional || undefined,
     criadoEm: row.created_at,
     atualizadoEm: row.updated_at,
   };
 }
 
+const knownMissingColumns = new Set<string>();
+
 /**
  * Converte FichaTecnica para formato da tabela "recipes"
  */
 function mapFichaToRow(ficha: FichaTecnica): Partial<SupabaseRecipeRow> {
-  return {
+  const row: Record<string, any> = {
     id: ficha.id || undefined,
     nome: ficha.nome,
     setor: ficha.setor,
@@ -57,14 +57,19 @@ function mapFichaToRow(ficha: FichaTecnica): Partial<SupabaseRecipeRow> {
     ingredientes: ficha.ingredientes,
     preparo: ficha.preparo,
     montagem: ficha.montagem,
-    tempo_preparo_segundos: ficha.tempoPreparoSegundos || null,
-    dica_operacional: ficha.dicaOperacional || null,
   };
+
+  // Exclui previamente colunas detectadas como ausentes no banco
+  for (const col of knownMissingColumns) {
+    delete row[col];
+  }
+
+  return row as Partial<SupabaseRecipeRow>;
 }
 
 /**
  * Salva com resiliência de schema: se uma coluna opcional não existir no Supabase,
- * remove automaticamente a coluna do payload e reenvia sem travar a operação do usuário.
+ * remove automaticamente a coluna do payload, memoriza a ausência e reenvia sem travar a operação do usuário.
  */
 async function saveWithSchemaFallback(
   client: any,
@@ -74,7 +79,12 @@ async function saveWithSchemaFallback(
 ): Promise<any> {
   let rowData = { ...initialRowData };
 
-  for (let attempt = 0; attempt < 4; attempt++) {
+  // Remove previamente colunas que já sabemos não existir
+  for (const col of knownMissingColumns) {
+    delete rowData[col];
+  }
+
+  for (let attempt = 0; attempt < 5; attempt++) {
     const query = isNew
       ? client.from('recipes').insert([rowData]).select().single()
       : client.from('recipes').update(rowData).eq('id', id).select().single();
@@ -88,11 +98,13 @@ async function saveWithSchemaFallback(
     // Detectar coluna ausente no cache de schema do PostgREST / Postgres
     const colMatch =
       error.message.match(/Could not find the '([^']+)' column/i) ||
-      error.message.match(/column recipes\.([^\s]+) does not exist/i);
+      error.message.match(/column recipes\.([^\s]+) does not exist/i) ||
+      error.message.match(/column "([^"]+)" of relation "recipes" does not exist/i);
 
-    if (colMatch && colMatch[1] && colMatch[1] in rowData) {
+    if (colMatch && colMatch[1]) {
       const missingCol = colMatch[1];
-      console.warn(`[FichaService] Coluna opcional '${missingCol}' ausente no Supabase. Reenviando sem esta coluna.`);
+      console.warn(`[FichaService] Coluna opcional '${missingCol}' ausente no Supabase. Memorizando e reenviando sem esta coluna.`);
+      knownMissingColumns.add(missingCol);
       delete rowData[missingCol];
       continue;
     }
@@ -349,11 +361,13 @@ class HybridFichaService implements IFichaService {
 
         const colMatch =
           error.message.match(/Could not find the '([^']+)' column/i) ||
-          error.message.match(/column recipes\.([^\s]+) does not exist/i);
+          error.message.match(/column recipes\.([^\s]+) does not exist/i) ||
+          error.message.match(/column "([^"]+)" of relation "recipes" does not exist/i);
 
         if (colMatch && colMatch[1]) {
           const missingCol = colMatch[1];
           console.warn(`[FichaService] Sincronização: Coluna '${missingCol}' ausente no banco. Removendo do envio.`);
+          knownMissingColumns.add(missingCol);
           rows = rows.map((r) => {
             const copy = { ...r };
             delete (copy as any)[missingCol];

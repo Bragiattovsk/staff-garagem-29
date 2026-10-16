@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wine, Utensils, FlaskConical, Clock, ChevronRight, Layers, Eye } from 'lucide-react';
+import { Wine, Utensils, FlaskConical, ChevronRight, Layers, Eye } from 'lucide-react';
 import type { FichaTecnica } from '../types/ficha';
 
 interface FichaCardProps {
@@ -74,7 +74,7 @@ export const FichaCard: React.FC<FichaCardProps> = ({ ficha, onClick, onOpenPhot
           </div>
         )}
 
-        {/* Top row: Sector, Category, and Time */}
+        {/* Top row: Sector and Category */}
         <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             {getSectorBadge(ficha.setor)}
@@ -82,17 +82,6 @@ export const FichaCard: React.FC<FichaCardProps> = ({ ficha, onClick, onOpenPhot
               {ficha.categoria}
             </span>
           </div>
-
-          {ficha.tempoPreparoSegundos && (
-            <div className="flex items-center gap-1 text-[11px] text-zinc-400 font-mono font-medium">
-              <Clock className="w-3 h-3 text-red-500" />
-              <span>
-                {ficha.tempoPreparoSegundos >= 60
-                  ? `${Math.round(ficha.tempoPreparoSegundos / 60)} min`
-                  : `${ficha.tempoPreparoSegundos}s`}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* Title in Oswald uppercase rock poster style */}

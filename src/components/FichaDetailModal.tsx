@@ -4,7 +4,6 @@ import {
   Sparkles,
   Layers,
   ChefHat,
-  AlertCircle,
   CheckCircle2,
   Edit,
   Copy,
@@ -100,7 +99,6 @@ export const FichaDetailModal: React.FC<FichaDetailModalProps> = ({
       ...ficha.preparo.map((p, idx) => `${idx + 1}. ${p}`),
       '',
       `Montagem: ${ficha.montagem}`,
-      ficha.dicaOperacional ? `Dica do Chef/Bar: ${ficha.dicaOperacional}` : '',
     ]
       .filter(Boolean)
       .join('\n');
@@ -360,17 +358,6 @@ export const FichaDetailModal: React.FC<FichaDetailModalProps> = ({
               {ficha.montagem}
             </p>
           </div>
-
-          {/* Operational tip & allergens */}
-          {ficha.dicaOperacional && (
-            <div className="bg-[#09090b] border border-zinc-800 rounded-xl p-3 flex items-start gap-2.5">
-              <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="text-xs">
-                <span className="font-oswald uppercase tracking-wider font-bold text-red-400 block mb-0.5">Dica Operacional:</span>
-                <span className="font-sans text-zinc-300 leading-relaxed">{ficha.dicaOperacional}</span>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Big Bottom Action Buttons for One-Hand Mobile Operation */}
